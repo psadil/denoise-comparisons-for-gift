@@ -30,6 +30,8 @@ UKB_Y = Path("derivatives") / "cognitive.parquet"
 
 
 MODEL = typing.Literal["RIDGE_CV", "PCR_RIDGE", "LASSO", "PCR_LASSO", "PLSR", "XGB"]
+REFERENCE = typing.Literal["smoothed", "res-native"]
+METHOD = typing.Literal["abcd", "hcp"]
 
 
 def cor_rank(x, y) -> float:
@@ -172,6 +174,8 @@ def main(
     x_in: Path,
     out_dir: Path,
     m: int,
+    references: typing.Sequence[REFERENCE] = typing.get_args(REFERENCE),
+    methods: typing.Sequence[METHOD] = typing.get_args(METHOD),
     model: MODEL = "RIDGE_CV",
     n_outer_folds: int = 10,
     y_in: Path = UKB_Y,
@@ -191,61 +195,75 @@ def main(
     y0 = (
         pl.scan_parquet(y_in).select("sub", measure).rename({measure: "y"}).drop_nulls()
     )
-
     logging.info(f"{measure=}")
-    final_parent = out_dir / "features" / f"{measure=}" / f"{model=}"
-    if final_parent.exists():
-        logging.info("skipping. outputs exist")
-        return
+    for reference in references:
+        logging.info(f"{reference=}")
+        for method in methods:
+            logging.info(f"{method=}")
+            final_parent = (
+                out_dir
+                / "features"
+                / f"{model=}"
+                / f"{measure=}"
+                / f"{reference=}"
+                / f"{method=}"
+            )
+            if final_parent.exists():
+                logging.info("skipping. outputs exist")
+                return
 
-    d = (
-        pl.scan_parquet(x_in, hive_partitioning=True)
-        .filter(pl.col("method") == "hcp", pl.col("reference") == "smoothed")
-        .drop("method", "reference")
-        .join(y0, on="sub", how="inner")
-        .collect()
-    )
+            d = (
+                pl.scan_parquet(x_in, hive_partitioning=True)
+                .filter(pl.col("method") == method, pl.col("reference") == reference)
+                .drop("method", "reference")
+                .join(y0, on="sub", how="inner")
+                .collect()
+            )
 
-    # drop columns that have all nulls (VOLS atlas may have different
-    # numbers of regions in parcellation)
-    d = d[[s.name for s in d if not (s.null_count() == d.height)]]
-    d = d.drop_nans()
+            # drop columns that have all nulls (VOLS atlas may have different
+            # numbers of regions in parcellation)
+            d = d[[s.name for s in d if not (s.null_count() == d.height)]]
+            d = d.drop_nans()
 
-    outer_cv = model_selection.KFold(
-        n_splits=n_outer_folds, shuffle=True, random_state=0
-    )
-    for fold, (train_index, test_index) in enumerate(outer_cv.split(d)):  # type:ignore
-        logging.info(f"{fold=}")
-        d_test = d[test_index, :]
-        d_trainval = d[train_index, :]
+            outer_cv = model_selection.KFold(
+                n_splits=n_outer_folds, shuffle=True, random_state=0
+            )
+            for fold, (train_index, test_index) in enumerate(outer_cv.split(d)):  # type:ignore
+                logging.info(f"{fold=}")
+                d_test = d[test_index, :]
+                d_trainval = d[train_index, :]
 
-        results, test_predictions, features = test_sample(
-            d_test=d_test, d_trainval=d_trainval, seed=fold, m=model
-        )
+                results, test_predictions, features = test_sample(
+                    d_test=d_test, d_trainval=d_trainval, seed=fold, m=model
+                )
 
-        results.lazy().sink_parquet(
-            out_dir
-            / "results"
-            / f"{measure=}"
-            / f"{model=}"
-            / f"{fold=}"
-            / "part-0.parquet",
-            mkdir=True,
-        )
+                results.lazy().sink_parquet(
+                    out_dir
+                    / "results"
+                    / f"{model=}"
+                    / f"{measure=}"
+                    / f"{reference=}"
+                    / f"{method=}"
+                    / f"{fold=}"
+                    / "part-0.parquet",
+                    mkdir=True,
+                )
 
-        test_predictions.lazy().sink_parquet(
-            out_dir
-            / "test-predictions"
-            / f"{measure=}"
-            / f"{model=}"
-            / f"{fold=}"
-            / "part-0.parquet",
-            mkdir=True,
-        )
+                test_predictions.lazy().sink_parquet(
+                    out_dir
+                    / "test-predictions"
+                    / f"{model=}"
+                    / f"{measure=}"
+                    / f"{reference=}"
+                    / f"{method=}"
+                    / f"{fold=}"
+                    / "part-0.parquet",
+                    mkdir=True,
+                )
 
-        features.lazy().sink_parquet(
-            final_parent / f"{fold=}" / "part-0.parquet", mkdir=True
-        )
+                features.lazy().sink_parquet(
+                    final_parent / f"{fold=}" / "part-0.parquet", mkdir=True
+                )
 
 
 if __name__ == "__main__":
