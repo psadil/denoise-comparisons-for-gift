@@ -1,0 +1,11 @@
+#!/bin/bash
+#SBATCH --job-name ukb
+#SBATCH --nodes 1
+#SBATCH --ntasks 1
+#SBATCH --mem 16G
+#SBATCH --output logs/ukb_%a
+#SBATCH --time 06:00:00
+#SBATCH --constraint="intel"
+
+ml fsl
+pixi run python ukb.py --references=Neuromark_fMRI_1.0_resampled24.nii "${SLURM_ARRAY_TASK_ID}"

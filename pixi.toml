@@ -1,0 +1,46 @@
+[workspace]
+authors = ["Patrick Sadil <psadil@gmail.com>"]
+channels = ["conda-forge"]
+name = "denoise-comparison"
+platforms = ["osx-arm64", "linux-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+nilearn = ">=0.13.0,<0.14"
+polars = ">=1.36.1,<2"
+jupyter = ">=1.1.1,<2"
+indexed_gzip = ">=1.10.3,<2"
+matplotlib = ">=3.10.8,<4"
+pydantic = ">=2.12.5,<3"
+fslpy = ">=3.27.0,<4"
+pandas = ">=2.3.3,<3"
+scipy = ">=1.17.0,<2"
+numpy = ">=2.4.1,<3"
+nitransforms = ">=24.1.4,<25"
+xgboost = ">=3.1.3,<4"
+
+[pypi-dependencies]
+gigica = { git = "https://github.com/psadil/gigica.git" }
+pymrimisc = { git = "https://github.com/psadil/pymrimisc.git" }
+
+[feature.r.dependencies]
+r-base = "*"
+r-quarto = "*"
+r-tidyr = "*"
+r-readr = "*"
+r-dplyr = "*"
+r-ggplot2 = "*"
+r-arrow = ">=22.0.0,<23"
+r-fs = ">=1.6.6,<2"
+r-corrr = ">=0.4.5,<0.5"
+r-scico = ">=1.5.0,<2"
+r-irr = ">=0.84.1,<0.85"
+r-mgc = ">=2.0.2,<3"
+r-furrr = ">=0.3.1,<0.4"
+r-ragg = ">=1.5.0,<2"
+
+[environments]
+r = ["r"]
+

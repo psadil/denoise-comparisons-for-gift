@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH -J cv
+#SBATCH --output logs/cv_%a.log
+#SBATCH -t 24:00:00
+#SBATCH --mem=1G
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --constraint="intel"
+
+set -xue
+
+pixi run python entrypoint.py "${SLURM_ARRAY_TASK_ID}"
