@@ -177,7 +177,8 @@ def main(
     references: typing.Sequence[REFERENCE] = typing.get_args(REFERENCE),
     methods: typing.Sequence[METHOD] = typing.get_args(METHOD),
     model: MODEL = "RIDGE_CV",
-    n_outer_folds: int = 10,
+    n_outer_folds: int = 50,
+    test_size: float = 0.2,
     y_in: Path = UKB_Y,
 ) -> None:
     """Coordinate cross-validation of model fit
@@ -186,8 +187,11 @@ def main(
         x_in (Path): parquet file with features used for fit.
         out_dir (Path): directory in which outputs will be saved (folders: results, test-predictions, features)
         m (int): integer column id of feature in x_in to fit
+        references (REFERENCE, optional): sequence of references to work with
+        methods (METHOD, optional): sequence of methods to work with
         model (MODEL, optional): pipeline that will be constructed for model fits. see get_pipeline. Defaults to "RIDGE_CV".
         n_outer_folds (int, optional): Number of folds in outer cross-validation loop (pipelines expected to have inner cv). Defaults to 10.
+        test_size (float, optional): Proportion of dataset left out on each shuffle fold. Defaults to 10.
         y_in (Path, optional): parquet file path with measures to predict. Defaults to UKB_Y.
     """
     measure = get_1_measure(m, src=y_in)
@@ -225,8 +229,8 @@ def main(
             d = d[[s.name for s in d if not (s.null_count() == d.height)]]
             d = d.drop_nans()
 
-            outer_cv = model_selection.KFold(
-                n_splits=n_outer_folds, shuffle=True, random_state=0
+            outer_cv = model_selection.ShuffleSplit(
+                n_splits=n_outer_folds, test_size=test_size, random_state=0
             )
             for fold, (train_index, test_index) in enumerate(outer_cv.split(d)):  # type:ignore
                 logging.info(f"{fold=}")
@@ -276,7 +280,7 @@ if __name__ == "__main__":
     parser.add_argument("--out", type=Path, default=DST_ROOT)
     parser.add_argument("--x", type=Path, default=CONNECTIVITY)
     parser.add_argument("--model", default="RIDGE_CV", choices=typing.get_args(MODEL))
-    parser.add_argument("--n-outer-folds", default=10, type=int)
+    parser.add_argument("--n-outer-folds", default=50, type=int)
 
     args = parser.parse_args()
 
