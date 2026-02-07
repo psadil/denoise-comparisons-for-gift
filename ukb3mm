@@ -4,8 +4,8 @@
 #SBATCH --ntasks 1
 #SBATCH --mem 10G
 #SBATCH --output logs/ukb3mm_%a
-#SBATCH --time 06:00:00
-#SBATCH --constraint="intel"
+#SBATCH --time 12:00:00
+#SBATCH --constraint="intel&(haswell|broadwell|cascadelake)"
 
 ml fsl
 pixi run python ukb.py --references=Neuromark_fMRI_1.0_resampled.nii "${SLURM_ARRAY_TASK_ID}"
