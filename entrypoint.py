@@ -1,7 +1,6 @@
 import argparse
 import logging
 import typing
-import os
 from pathlib import Path
 
 import numpy as np
@@ -24,13 +23,13 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-8s | %(message)s",
     level=logging.INFO,
 )
-DST_ROOT = Path(os.environ["MYSCRATCH"]) / "predictions"
+DST_ROOT = Path("derivatives") / "predictions"
 CONNECTIVITY = Path("derivatives") / "connectivity"
 UKB_Y = Path("derivatives") / "cognitive.parquet"
 
 
 MODEL = typing.Literal["RIDGE_CV", "PCR_RIDGE", "LASSO", "PCR_LASSO", "PLSR", "XGB"]
-REFERENCE = typing.Literal["smoothed", "res-native"]
+REFERENCE = typing.Literal["smooth", "res-native"]
 METHOD = typing.Literal["abcd", "hcp"]
 
 
@@ -291,3 +290,4 @@ if __name__ == "__main__":
         model=args.model,
         n_outer_folds=args.n_outer_folds,
     )
+

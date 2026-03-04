@@ -57,8 +57,7 @@ Generates
 ### Generate Connectivities
 
 ```{shell}
-# probably better to run interactively, like in positron
-pixi run -e r main.R
+pixi run python corr.py
 ```
 
 Uses
@@ -68,7 +67,6 @@ Uses
 Generates
 
 - derivatives/connectivity (atanh-transformed connectivities between timeseries in derivatives/tc)
-- some additional plots
 
 ### Fit Predictive Models
 

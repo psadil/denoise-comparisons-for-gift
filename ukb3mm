@@ -8,4 +8,4 @@
 #SBATCH --constraint="intel&(haswell|broadwell|cascadelake)"
 
 ml fsl
-pixi run python ukb.py --references=Neuromark_fMRI_1.0_resampled.nii "${SLURM_ARRAY_TASK_ID}"
+pixi run python ukb.py --references=Neuromark_fMRI_1.0_resampled.nii $((10000 + "${SLURM_ARRAY_TASK_ID}"))
