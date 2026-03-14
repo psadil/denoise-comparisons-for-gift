@@ -328,8 +328,9 @@ def transform_t1_seg_to_example_func(src: Path, mat: nt.linear.Affine, dst: Path
         nt.resampling.apply(transform=mat, spatialimage=src), threshold=0.5
     )  # type:ignore
 
+    # eroded by a single fMRI-resolution voxel
     seg_eroded = ndimage.binary_erosion(
-        np.asarray(seg.get_fdata(), dtype=np.bool), iterations=2
+        np.asarray(seg.get_fdata(), dtype=np.bool), iterations=1
     )
     image.new_img_like(seg, seg_eroded, affine=seg.affine).to_filename(  # type:ignore
         dst
@@ -441,7 +442,7 @@ def main(sub: str, dst_root: Path = DST_ROOT, ref: Ref = Ref.mm3):
         / f"sub-{ukb_sub.sub}_ses-{ukb_sub.ses}_task-{ukb_sub.task}_space-MNI152NLin6Asym{res}_desc-hcp_bold.nii.gz"
     )
 
-    if not (dst_abcd.exists() and dst_hcp.exists()):
+    if not dst_abcd.exists():
         logging.info(f"making counfounds for {ukb_sub}")
         confounds = get_confounds(ukb_sub)
         n_passing_second_filter = (
@@ -479,7 +480,10 @@ def main(sub: str, dst_root: Path = DST_ROOT, ref: Ref = Ref.mm3):
             target=ref,
             warp=ukb_sub.example_func2standard_warp_redone,
         )
+    else:
+        logging.info(f"{dst_abcd} exists, skipping")
 
+    if not dst_hcp.exists():
         # do the same with the fix'd data
         logging.info("HCP cleaning")
         arr_hcp = masker_hcp.transform(ukb_sub.filtered_func_clean)
@@ -492,9 +496,8 @@ def main(sub: str, dst_root: Path = DST_ROOT, ref: Ref = Ref.mm3):
             target=ref,
             warp=ukb_sub.example_func2standard_warp,
         )
-
     else:
-        logging.info(f"{dst_abcd} and {dst_hcp} exists, skipping")
+        logging.info(f"{dst_hcp} exists, skipping")
 
     # and now estimate components!
     for method in ["hcp", "abcd"]:
@@ -518,7 +521,7 @@ def main(sub: str, dst_root: Path = DST_ROOT, ref: Ref = Ref.mm3):
         )
         if dst_tc.exists() and dst_ic.exists():
             logging.info(f"found ICA for {method}, skipping")
-            return
+            continue
 
         logging.info(f"running ICA for {method}")
         utils.do_ica(

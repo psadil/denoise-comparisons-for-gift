@@ -198,26 +198,26 @@ def expand_motion(d: pl.DataFrame, radius: float = FD_RADIUS) -> pl.DataFrame:
     return (
         add_fd(d.with_row_index("t"), radius=radius)
         .with_columns(
-            trans_x_power2=pl.col("trans_x").pow(2),
-            trans_y_power2=pl.col("trans_y").pow(2),
-            trans_z_power2=pl.col("trans_z").pow(2),
-            rot_x_power2=pl.col("rot_x").pow(2),
-            rot_y_power2=pl.col("rot_y").pow(2),
-            rot_z_power2=pl.col("rot_z").pow(2),
-        )
-        .with_columns(
             trans_x_derivative1=pl.col("trans_x").diff(),
             trans_y_derivative1=pl.col("trans_y").diff(),
             trans_z_derivative1=pl.col("trans_z").diff(),
             rot_x_derivative1=pl.col("rot_x").diff(),
             rot_y_derivative1=pl.col("rot_y").diff(),
             rot_z_derivative1=pl.col("rot_z").diff(),
-            trans_x_power2_derivative1=pl.col("trans_x_power2").diff(),
-            trans_y_power2_derivative1=pl.col("trans_y_power2").diff(),
-            trans_z_power2_derivative1=pl.col("trans_z_power2").diff(),
-            rot_x_power2_derivative1=pl.col("rot_x_power2").diff(),
-            rot_y_power2_derivative1=pl.col("rot_y_power2").diff(),
-            rot_z_power2_derivative1=pl.col("rot_z_power2").diff(),
+        )
+        .with_columns(
+            trans_x_power2=pl.col("trans_x").pow(2),
+            trans_y_power2=pl.col("trans_y").pow(2),
+            trans_z_power2=pl.col("trans_z").pow(2),
+            rot_x_power2=pl.col("rot_x").pow(2),
+            rot_y_power2=pl.col("rot_y").pow(2),
+            rot_z_power2=pl.col("rot_z").pow(2),
+            trans_x_derivative1_power2=pl.col("trans_x_derivative1").pow(2),
+            trans_y_derivative1_power2=pl.col("trans_y_derivative1").pow(2),
+            trans_z_derivative1_power2=pl.col("trans_z_derivative1").pow(2),
+            rot_x_derivative1_power2=pl.col("rot_x_derivative1").pow(2),
+            rot_y_derivative1_power2=pl.col("rot_y_derivative1").pow(2),
+            rot_z_derivative1_power2=pl.col("rot_z_derivative1").pow(2),
         )
     )
 

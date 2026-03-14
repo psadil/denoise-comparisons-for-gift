@@ -3,7 +3,7 @@ library(tidyr)
 library(purrr)
 library(corrr)
 library(ggplot2)
-library(mgc)
+# library(mgc)
 
 ukb_ntr <- arrow::open_dataset("derivatives/tc") |>
   filter(
@@ -55,22 +55,65 @@ out |>
   group_by(method, reference) |>
   arrow::write_dataset("derivatives/connectivity")
 
+# between(x, 0, 4) ~ "SC",
+# between(x, 5, 6) ~ "AU",
+# between(x, 7, 15) ~ "SM",
+# between(x, 16, 24) ~ "VI",
+# between(x, 25, 41) ~ "CC",
+# between(x, 42, 48) ~ "DM",
+# between(x, 49, 52) ~ "CB"
+
+extra <- function(x, label) {
+  annotate("text", x = x, y = -1, label = label, size = 3)
+}
+
+out <- duckplyr::read_parquet_duckdb(
+  "derivatives/connectivity",
+  prudence = "lavish"
+) |>
+  collect() |>
+  summarise(
+    across(
+      matches("[[:digit:]]+_[[:digit:]]+"),
+      ~ tanh(mean(.x, na.rm = TRUE))
+    ),
+    .by = c(method, reference)
+  ) |>
+  pivot_longer(c(-method, -reference), values_to = "r") |>
+  separate(name, into = c("x", "y"), sep = "_", convert = TRUE)
+
 out |>
-  summarise(r = tanh(mean(atanh(r))), .by = c(method, x, y, reference)) |>
+  mutate(method = glue::glue("Method: {stringr::str_to_upper(method)}")) |>
   ggplot(aes(x = x, y = y, fill = r)) +
   geom_raster() +
   scico::scale_fill_scico(
     palette = "vik",
     limits = c(-1, 1),
-    name = "Avg Rank Cor"
+    name = "Avg\nRank\nCor"
   ) +
+  geom_hline(yintercept = c(5, 7, 16, 25, 42, 49) - 0.5, alpha = 0.25) +
+  geom_vline(xintercept = c(5, 7, 16, 25, 42, 49) - 0.5, alpha = 0.25) +
   facet_grid(reference ~ method) +
-  coord_fixed() +
-  xlab("ICA Component") +
-  ylab("ICA Component") +
-  ggtitle("UKB")
+  coord_fixed(xlim = c(0, 52), ylim = c(0, 52), clip = "off") +
+  extra(0, "SC") +
+  extra(5, "AU") +
+  extra(10, "SM") +
+  extra(19, "VI") +
+  extra(28, "CC") +
+  extra(45, "DM") +
+  extra(52, "CB") +
+  xlab("NeuroMark Component") +
+  ylab("NeuroMark Component") +
+  ggtitle("UKB (N: 1000)") +
+  theme_classic(base_size = 18)
 
-ggsave("cormat.png", device = ragg::agg_png, dpi = 600)
+ggsave(
+  "cormat.png",
+  device = ragg::agg_png,
+  dpi = 600,
+  height = 7.5,
+  width = 7.5
+)
 
 tmp <- out |>
   mutate(r = atanh(r)) |>
@@ -160,3 +203,26 @@ as_tibble(Dx) |>
   coord_fixed()
 
 ggsave("dist.png", device = ragg::agg_png, width = 7, height = 7, dpi = 900)
+
+
+arrow::open_dataset("derivatives/predictions/results") |>
+  select(starts_with("test"), model, measure, reference, method, fold) |>
+  distinct() |>
+  collect() |>
+  mutate(test_r2 = if_else(test_r2 < 0, 0, test_r2)) |>
+  pivot_longer(starts_with("test")) |>
+  mutate(
+    method = stringr::str_extract(method, "(abcd)|(hcp)"),
+    reference = case_match(
+      reference,
+      "'res-native'" ~ "res-native",
+      .default = "3mm-smooth"
+    ),
+    name = stringr::str_remove(name, "test_")
+  ) |>
+  ggplot(aes(x = method, y = value, color = reference)) +
+  facet_wrap(~name, scales = "free_y") +
+  geom_boxplot(outliers = FALSE) +
+  geom_point(position = position_jitterdodge(), alpha = 0.2)
+
+ggsave("fluid-intelligence-predictions.png", device = ragg::agg_png, width = 6)
